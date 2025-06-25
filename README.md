@@ -1,6 +1,6 @@
 # Projeto DesagregaGD
 
-Este repositório contém os arquivos para o sistema de estimativa de carga em alimentadores de distribuição, desenvolvido para [Nome da Disciplina ou Finalidade].
+Este repositório contém os arquivos para o sistema de estimativa de carga em alimentadores de distribuição, desenvolvido pelo GSEL.
 
 ## Arquivos do Projeto
 
