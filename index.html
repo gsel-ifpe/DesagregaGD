@@ -423,10 +423,6 @@
                 <input type="text" id="eficienciaGD" value="0.2" inputmode="decimal" placeholder="Ex: 0.2342" required>
                 <div id="eficiencia-error" style="color: #D8000C; font-size: 0.9em; height: 15px; margin-top: -10px; margin-bottom: 10px;"></div>
                 
-                <label for="fatorPotencia">Fator de Potência da Carga (0 a 1):</label>
-                <input type="number" id="fatorPotencia" value="0.92" step="any" min="0" max="1" placeholder="Ex: 0.92" required>
-                <small>Valor necessário para converter a potência aparente (kVA) em potência ativa (kW).</small>
-
                 <hr style="margin: 20px 0;">
 
                 <label for="cargaMascaradaFile">Curva de potência no início do alimentador:</label>
@@ -455,7 +451,7 @@
                 <h2>Resultados da Análise</h2>
                 <p class="export-note">Passe o mouse sobre o nome de uma métrica para ver sua descrição. Os arquivos CSV baixados podem ser abertos no Excel ou similar.</p>
                 
-                <h3>Métricas de Diferença entre Carga Real e Mascarada</h3>
+                <h3>Métricas de Potência Ativa da Geração Distribuída</h3>
                 <div class="button-group-container" id="downloadButtonMetricasContainer"></div>
                 <div id="metricsTableContainer"></div>
                 
@@ -621,24 +617,13 @@
     const cores_fases = ['#1f77b4', '#ff7f0e', '#d62728'];
     const cores_total = ['#9467bd', '#8c564b'];
 
-    // Dicionário com detalhes das métricas para exibição
+    // Dicionário com detalhes das métricas para exibição (Versão Simplificada)
     const metricDetails = {
-        'group1_header': { name: 'Métricas Essenciais (Potência Ativa)', isHeader: true },
-        'Prof_Max_Power_kW': { name: 'Potência Máxima da GD', unit: 'kW', desc: 'Pico de potência ativa (kW) injetada pela GD, calculado usando o Fator de Potência.' },
-        'Prof_Mean_Power_kW': { name: 'Potência Média da GD', unit: 'kW', desc: 'Média de potência ativa (kW) injetada pela GD ao longo do dia, calculado usando o Fator de Potência.' },
-        'Prof_Energy_kWh': { name: 'Energia Gerada pela GD', unit: 'kWh', desc: 'Energia ativa total (kWh) gerada pela GD durante o dia, calculada usando o Fator de Potência.' },
-        'Prof_Masked_Energy_kWh': { name: 'Energia Mascarada pela GD', unit: 'kWh', desc: 'Energia ativa (kWh) fornecida pela GD que "mascarou" o consumo da rede. É igual à Energia Gerada.' },
-        'Prof_Masked_Power_kW': { name: 'Potência Máxima da Carga Mascarada', unit: 'kW', desc: 'Potência ativa (kW) máxima que foi "mascarada" pela GD. É igual à Potência Máxima da GD.' },
-
-        'group2_header': { name: 'Métricas Detalhadas (Potência Aparente)', isHeader: true },
-        'Max_Diff (GD Máxima)': { name: 'Pico Máximo de Geração Aparente', unit: 'kVA', desc: 'O valor máximo de potência aparente (kVA) que a Geração Distribuída (GD) injetou na rede em um único momento.' },
-        'Min_Diff (GD Mínima)': { name: 'Geração Mínima Aparente', unit: 'kVA', desc: 'O valor mínimo de potência aparente (kVA) injetada pela GD. Valores zero ou próximos a zero são comuns durante a noite.' },
-        'Mean_Diff (GD Média)': { name: 'Geração Média Aparente', unit: 'kVA', desc: 'A média da potência aparente (kVA) injetada pela GD ao longo das 24 horas.' },
-        'Std_Diff (Desvio Padrão da GD)': { name: 'Desvio Padrão da Geração Aparente', unit: 'kVA', desc: 'Mede a variabilidade da geração aparente (kVA) da GD em torno da média. Um valor alto indica grande variação.' },
-        'Total_Diff (Soma Total da GD)': { name: 'Soma das Diferenças de Potência Aparente', unit: 'kVA', desc: 'Soma aritmética de todas as diferenças horárias de potência aparente (Real - Mascarada). Não representa a energia total, pois não considera o tempo.' },
-        'Área_Positiva_Diff (Energia GD kVA·h)': { name: 'Energia Aparente Injetada na Rede', unit: 'kVAh', desc: 'A energia aparente total (em kVAh) que a GD efetivamente injetou na rede, calculada pela área sob a curva de geração.' },
-        'Área_Negativa_Diff (kVA·h)': { name: 'Energia Aparente "Negativa" (Anomalia)', unit: 'kVAh', desc: 'Representa momentos em que a carga real aparente foi menor que a mascarada, o que é incomum. Pode indicar anomalias nos dados de entrada.' },
-        'Área_Total_Abs_Diff (kVA·h)': { name: 'Impacto Energético Aparente Total', unit: 'kVAh', desc: 'A soma total do impacto energético aparente da GD (em kVAh), considerando o valor absoluto das diferenças. Mede a magnitude total da alteração na curva de carga.' }
+        'p_max_gd': { name: 'Potência Máxima da GD', unit: 'kW', desc: 'Pico de potência ativa (kW) injetada pela GD ao longo do dia.' },
+        'p_media_gd': { name: 'Potência Média da GD', unit: 'kW', desc: 'Média de potência ativa (kW) injetada pela GD ao longo do dia.' },
+        'energia_gerada_gd': { name: 'Energia Gerada pela GD', unit: 'kWh', desc: 'Energia ativa total (kWh) gerada pela GD durante o dia.' },
+        'energia_mascarada': { name: 'Energia Mascarada pela GD', unit: 'kWh', desc: 'Energia ativa (kWh) fornecida pela GD que "mascarou" o consumo da rede. É igual à Energia Gerada.' },
+        'p_max_mascarada': { name: 'Potência Máxima da Carga Mascarada', unit: 'kW', desc: 'Potência ativa (kW) máxima que foi "mascarada" pela GD. É igual à Potência Máxima da GD.' },
     };
 
     // --- Funções Auxiliares ---
@@ -652,13 +637,6 @@
     function getMean(arr) {
         if (!arr || arr.length === 0) return 0;
         return getSum(arr) / arr.length;
-    }
-    function getStdDev(arr) {
-        if (!arr || arr.length === 0) return 0;
-        const mean = getMean(arr);
-        const squareDiffs = arr.map(value => Math.pow(value - mean, 2));
-        const avgSquareDiff = getMean(squareDiffs);
-        return Math.sqrt(avgSquareDiff);
     }
     function trapezoidRule(y, dx = 1) {
         if (!y || y.length < 2) return 0;
@@ -791,7 +769,6 @@
             const potenciaInstalada = parseFloat(document.getElementById('potenciaInstalada').value);
             const eficienciaValue = document.getElementById('eficienciaGD').value.replace(',', '.');
             const eficiencia = parseFloat(eficienciaValue);
-            const fatorPotencia = parseFloat(document.getElementById('fatorPotencia').value);
             const cargaMascaradaFile = document.getElementById('cargaMascaradaFile').files[0];
             const percFase1 = parseFloat(document.getElementById('percFase1').value) / 100;
             const percFase2 = parseFloat(document.getElementById('percFase2').value) / 100;
@@ -800,9 +777,6 @@
             // Validação dos inputs
             if (isNaN(eficiencia) || eficiencia < 0 || eficiencia > 1) {
                 throw new Error("Processamento interrompido. O valor de eficiência deve ser um número entre 0 e 1.");
-            }
-            if (isNaN(fatorPotencia) || fatorPotencia < 0 || fatorPotencia > 1) {
-                throw new Error("Processamento interrompido. O valor do Fator de Potência deve ser um número entre 0 e 1.");
             }
             if (!irradianceFile || !cargaMascaradaFile || isNaN(potenciaInstalada) || isNaN(percFase1) || isNaN(percFase2) || isNaN(percFase3)) {
                 throw new Error("Todos os campos obrigatórios devem ser preenchidos e os arquivos selecionados.");
@@ -827,7 +801,7 @@
                 irradiancia = interpolateLinear(x_known, irradiancia_input_raw_num, tempo_horas);
             }
             
-            const geracao_gd = irradiancia.map(irr => round(irr * potenciaInstalada * eficiencia, 2));
+            const geracao_gd_kw = irradiancia.map(irr => round(irr * potenciaInstalada * eficiencia, 2));
             
             const cargaText = await cargaMascaradaFile.text();
             let df_carga_raw = parseCSV(cargaText);
@@ -848,135 +822,90 @@
                 return newRow;
             });
 
-            const geracao_gd_hora = Array(24).fill(0).map((_, i) => round(getMean(geracao_gd.slice(i * 6, (i + 1) * 6)), 2));
+            const geracao_gd_hora_kw = Array(24).fill(0).map((_, i) => round(getMean(geracao_gd_kw.slice(i * 6, (i + 1) * 6)), 2));
 
             df_carga.forEach((row, i) => {
-                row['S1_real (kVA)'] = round(row['S1 (kVA)'] + (geracao_gd_hora[i] * percFase1), 2);
-                row['S2_real (kVA)'] = round(row['S2 (kVA)'] + (geracao_gd_hora[i] * percFase2), 2);
-                row['S3_real (kVA)'] = round(row['S3 (kVA)'] + (geracao_gd_hora[i] * percFase3), 2);
+                row['S1_real (kVA)'] = round(row['S1 (kVA)'] + (geracao_gd_hora_kw[i] * percFase1), 2);
+                row['S2_real (kVA)'] = round(row['S2 (kVA)'] + (geracao_gd_hora_kw[i] * percFase2), 2);
+                row['S3_real (kVA)'] = round(row['S3 (kVA)'] + (geracao_gd_hora_kw[i] * percFase3), 2);
                 row['Total_Mascarada (kVA)'] = round(row['S1 (kVA)'] + row['S2 (kVA)'] + row['S3 (kVA)'], 2);
                 row['Total_Real (kVA)'] = round(row['S1_real (kVA)'] + row['S2_real (kVA)'] + row['S3_real (kVA)'], 2);
             });
             
-            // Cálculo das métricas
-            const metricsData = []; 
-            function calculate_phase_metrics_js(realArr, mascaradaArr, phaseNameForOutput) {
-                const diff_kVA = realArr.map((r, idx) => round(r - mascaradaArr[idx], 2)); 
-                const diff_kW = diff_kVA.map(val => round(val * fatorPotencia, 2));
+            // --- Cálculo das Métricas de Potência Ativa (Lógica Simplificada) ---
+            const displayMetrics = {};
 
-                const metrics = {
-                    'Prof_Max_Power_kW': round(Math.max(...diff_kW), 2),
-                    'Prof_Mean_Power_kW': round(getMean(diff_kW), 2),
-                    'Prof_Energy_kWh': round(trapezoidRule(diff_kW.map(d => d >= 0 ? d : 0)), 2),
-                    'Prof_Masked_Energy_kWh': round(trapezoidRule(diff_kW.map(d => d >= 0 ? d : 0)), 2),
-                    'Prof_Masked_Power_kW': round(Math.max(...diff_kW), 2),
-                    
-                    'Max_Diff (GD Máxima)': round(Math.max(...diff_kVA), 2),
-                    'Min_Diff (GD Mínima)': round(Math.min(...diff_kVA), 2), 
-                    'Mean_Diff (GD Média)': round(getMean(diff_kVA), 2),
-                    'Std_Diff (Desvio Padrão da GD)': round(getStdDev(diff_kVA), 2),
-                    'Total_Diff (Soma Total da GD)': round(getSum(diff_kVA), 2), 
-                    'Área_Positiva_Diff (Energia GD kVA·h)': round(trapezoidRule(diff_kVA.map(d => d >= 0 ? d : 0)), 2),
-                    'Área_Negativa_Diff (kVA·h)': round(trapezoidRule(diff_kVA.map(d => d < 0 ? -d : 0)), 2), 
-                    'Área_Total_Abs_Diff (kVA·h)': round(trapezoidRule(diff_kVA.map(d => Math.abs(d))), 2)
+            function calculate_active_power_metrics(hourly_kw_generation) {
+                if (!hourly_kw_generation || hourly_kw_generation.length === 0) {
+                    return { p_max_gd: 0, p_media_gd: 0, energia_gerada_gd: 0, energia_mascarada: 0, p_max_mascarada: 0 };
+                }
+                const p_max = Math.max(...hourly_kw_generation);
+                const p_media = getMean(hourly_kw_generation);
+                const energia = getSum(hourly_kw_generation);
+                return {
+                    'p_max_gd': round(p_max, 2),
+                    'p_media_gd': round(p_media, 2),
+                    'energia_gerada_gd': round(energia, 2),
+                    'energia_mascarada': round(energia, 2),
+                    'p_max_mascarada': round(p_max, 2)
                 };
-
-                Object.entries(metrics).forEach(([metricName, value]) => {
-                    let row = { 'Métrica': metricName, 'Fase 1': '', 'Fase 2': '', 'Fase 3': '', 'Total': '' };
-                    const formattedValue = typeof value === 'number' ? value.toFixed(2) : 'N/A';
-                    if (phaseNameForOutput === 'Total') row['Total'] = formattedValue;
-                    else row[`Fase ${phaseNameForOutput}`] = formattedValue;
-                    metricsData.push(row);
-                });
             }
             
-            calculate_phase_metrics_js(df_carga.map(r => r['S1_real (kVA)']), df_carga.map(r => r['S1 (kVA)']), '1');
-            calculate_phase_metrics_js(df_carga.map(r => r['S2_real (kVA)']), df_carga.map(r => r['S2 (kVA)']), '2');
-            calculate_phase_metrics_js(df_carga.map(r => r['S3_real (kVA)']), df_carga.map(r => r['S3 (kVA)']), '3');
-            calculate_phase_metrics_js(df_carga.map(r => r['Total_Real (kVA)']), df_carga.map(r => r['Total_Mascarada (kVA)']), 'Total');
+            const gd_kw_f1 = geracao_gd_hora_kw.map(g => g * percFase1);
+            const gd_kw_f2 = geracao_gd_hora_kw.map(g => g * percFase2);
+            const gd_kw_f3 = geracao_gd_hora_kw.map(g => g * percFase3);
             
-            const displayMetrics = {};
-            metricsData.forEach(row => {
-                if (!displayMetrics[row['Métrica']]) {
-                    displayMetrics[row['Métrica']] = { 'Fase 1': '', 'Fase 2': '', 'Fase 3': '', 'Total': '' };
-                }
-                if (row['Fase 1']) displayMetrics[row['Métrica']]['Fase 1'] = row['Fase 1'];
-                if (row['Fase 2']) displayMetrics[row['Métrica']]['Fase 2'] = row['Fase 2'];
-                if (row['Fase 3']) displayMetrics[row['Métrica']]['Fase 3'] = row['Fase 3'];
-                if (row['Total']) displayMetrics[row['Métrica']]['Total'] = row['Total'];
+            const metrics_f1 = calculate_active_power_metrics(gd_kw_f1);
+            const metrics_f2 = calculate_active_power_metrics(gd_kw_f2);
+            const metrics_f3 = calculate_active_power_metrics(gd_kw_f3);
+            const metrics_total = calculate_active_power_metrics(geracao_gd_hora_kw);
+
+            Object.keys(metricDetails).forEach(metricKey => {
+                 displayMetrics[metricKey] = {
+                    'Fase 1': metrics_f1[metricKey],
+                    'Fase 2': metrics_f2[metricKey],
+                    'Fase 3': metrics_f3[metricKey],
+                    'Total': metrics_total[metricKey],
+                };
             });
 
-            // Geração da Tabela e do CSV
+            // --- Geração da Tabela e do CSV (Lógica Simplificada) ---
             let metricsTableHTML = '<table><thead><tr><th>Métrica</th><th>Unidade</th><th>Fase 1</th><th>Fase 2</th><th>Fase 3</th><th>Total</th></tr></thead><tbody>';
-            let metrics_CSV_Data = "Grupo;Métrica;Unidade;Fase 1;Fase 2;Fase 3;Total\n";
+            let metrics_CSV_Data = "Métrica;Unidade;Fase 1;Fase 2;Fase 3;Total\n";
 
             Object.keys(metricDetails).forEach(internalName => {
                 const details = metricDetails[internalName];
-                if (details.isHeader) {
-                    metricsTableHTML += `<tr><td colspan="6" class="metric-group-header">${details.name}</td></tr>`;
-                    metrics_CSV_Data += `${details.name};;;;;\n`;
-                } else {
-                    const values = displayMetrics[internalName];
-                    if (values) {
-                        metricsTableHTML += `
-                            <tr>
-                                <td>
-                                    <span class="metric-tooltip">${details.name}
-                                        <span class="tooltip-text">${details.desc}</span>
-                                    </span>
-                                </td>
-                                <td>${details.unit}</td>
-                                <td>${values['Fase 1']}</td>
-                                <td>${values['Fase 2']}</td>
-                                <td>${values['Fase 3']}</td>
-                                <td>${values['Total']}</td>
-                            </tr>
-                        `;
-                        metrics_CSV_Data += ` ;${details.name};${details.unit};${String(values['Fase 1']).replace('.', ',')};${String(values['Fase 2']).replace('.', ',')};${String(values['Fase 3']).replace('.', ',')};${String(values['Total']).replace('.', ',')}\n`;
-                    }
+                const values = displayMetrics[internalName];
+                if (values) {
+                    metricsTableHTML += `
+                        <tr>
+                            <td>
+                                <span class="metric-tooltip">${details.name}
+                                    <span class="tooltip-text">${details.desc}</span>
+                                </span>
+                            </td>
+                            <td>${details.unit}</td>
+                            <td>${values['Fase 1']}</td>
+                            <td>${values['Fase 2']}</td>
+                            <td>${values['Fase 3']}</td>
+                            <td>${values['Total']}</td>
+                        </tr>
+                    `;
+                    metrics_CSV_Data += `${details.name};${details.unit};${String(values['Fase 1']).replace('.', ',')};${String(values['Fase 2']).replace('.', ',')};${String(values['Fase 3']).replace('.', ',')};${String(values['Total']).replace('.', ',')}\n`;
                 }
             });
 
             metricsTableHTML += '</tbody></table>';
             document.getElementById('metricsTableContainer').innerHTML = metricsTableHTML;
             
-            // Geração dos dados para CSV dos gráficos
-            let comparacaoFases_CSV_Data = "Hora;S_total_real_kVA;S_1_real_kVA;S_2_real_kVA;S_3_real_kVA;S_total_mascarada_kVA;S_1_mascarada_kVA;S_2_mascarada_kVA;S_3_mascarada_kVA\n";
-            df_carga.forEach(row => {
-                comparacaoFases_CSV_Data += `${row['hour']};${row['Total_Real (kVA)'].toFixed(2).replace('.', ',')};${row['S1_real (kVA)'].toFixed(2).replace('.', ',')};${row['S2_real (kVA)'].toFixed(2).replace('.', ',')};${row['S3_real (kVA)'].toFixed(2).replace('.', ',')};${row['Total_Mascarada (kVA)'].toFixed(2).replace('.', ',')};${row['S1 (kVA)'].toFixed(2).replace('.', ',')};${row['S2 (kVA)'].toFixed(2).replace('.', ',')};${row['S3 (kVA)'].toFixed(2).replace('.', ',')}\n`;
-            });
+            // --- Geração dos dados para CSV dos gráficos ---
             const horasDia = df_carga.map(r => r.hour);
-            const gd_fase1_data = df_carga.map(r => round(r['S1_real (kVA)'] - r['S1 (kVA)'], 2));
-            const gd_fase2_data = df_carga.map(r => round(r['S2_real (kVA)'] - r['S2 (kVA)'], 2));
-            const gd_fase3_data = df_carga.map(r => round(r['S3_real (kVA)'] - r['S3 (kVA)'], 2));
-            let diferencasGD_CSV_Data = "Hora;GD_Fase1_kVA;GD_Fase2_kVA;GD_Fase3_kVA\n";
-            let curvaGeracaoGD_CSV_Data = "Tempo (h);Irradiancia_Interpolada (W/m²);Geracao_GD (kW)\n";
-            for (let i = 0; i < tempo_horas.length; i++) {
-                curvaGeracaoGD_CSV_Data += `${tempo_horas[i].toFixed(2).replace('.', ',')};${irradiancia[i].toFixed(2).replace('.', ',')};${geracao_gd[i].toFixed(2).replace('.', ',')}\n`;
-            }
-            for (let i = 0; i < horasDia.length; i++) {
-                diferencasGD_CSV_Data += `${horasDia[i]};${gd_fase1_data[i].toFixed(2).replace('.', ',')};${gd_fase2_data[i].toFixed(2).replace('.', ',')};${gd_fase3_data[i].toFixed(2).replace('.', ',')}\n`;
-            }
-
-            // Geração de botões de download
-            const buttonContainers = {
-                Metricas: document.getElementById('downloadButtonMetricasContainer'),
-                ComparacaoFase: document.getElementById('downloadButtonComparacaoFaseContainer'),
-                CargaTotal: document.getElementById('downloadButtonCargaTotalContainer'),
-                DiferencasGD: document.getElementById('downloadButtonDiferencasGDContainer'),
-                AnaliseDetalhada: document.getElementById('downloadButtonAnaliseDetalhadaContainer')
-            };
-            Object.values(buttonContainers).forEach(c => c.innerHTML = '');
-
-            addDownloadButton(buttonContainers.Metricas, metrics_CSV_Data, "metricas_completas.csv", "Exportar Métricas (Excel/CSV)");
-            addDownloadButton(buttonContainers.ComparacaoFase, comparacaoFases_CSV_Data, "dados_comparacao_fases.csv", "Exportar Dados de Carga por Fase (Excel/CSV)");
-            addDownloadButton(buttonContainers.ComparacaoFase, curvaGeracaoGD_CSV_Data, "dados_geracao_gd_detalhada.csv", "Exportar Geração GD Detalhada (144 pts)");
-            addDownloadButton(buttonContainers.CargaTotal, comparacaoFases_CSV_Data, "dados_carga_total_e_fases.csv", "Exportar Dados de Carga Total e Fases (Excel/CSV)");
-            addDownloadButton(buttonContainers.DiferencasGD, diferencasGD_CSV_Data, "dados_diferencas_gd.csv", "Exportar Dados de Diferenças GD por Fase (Excel/CSV)");
-            addDownloadButton(buttonContainers.AnaliseDetalhada, comparacaoFases_CSV_Data, "dados_comparacao_fases.csv", "Exportar Real/Mascarada (Excel/CSV)");
-            addDownloadButton(buttonContainers.AnaliseDetalhada, diferencasGD_CSV_Data, "dados_diferencas_gd.csv", "Exportar Diferenças GD (Excel/CSV)");
+            // Dados de diferença em kVA para os gráficos, conforme o modelo visual
+            const gd_fase1_data_kva = df_carga.map(r => round(r['S1_real (kVA)'] - r['S1 (kVA)'], 2));
+            const gd_fase2_data_kva = df_carga.map(r => round(r['S2_real (kVA)'] - r['S2 (kVA)'], 2));
+            const gd_fase3_data_kva = df_carga.map(r => round(r['S3_real (kVA)'] - r['S3 (kVA)'], 2));
             
-            // Renderização dos gráficos
+            // --- Renderização dos gráficos (Estilo do Modelo) ---
             renderChart('comparacaoFaseChart', 'bar', {
                 labels: horasDia,
                 datasets: [
@@ -986,7 +915,7 @@
                     { type: 'line', label: 'S2 Mascarada (sem GD)', data: df_carga.map(r => r['S2 (kVA)']), borderColor: cores_fases[1], borderDash: [5, 5], fill: false, tension: 0.1, order: 0 },
                     { type: 'line', label: `S3 Real (com GD)`, data: df_carga.map(r => r['S3_real (kVA)']), borderColor: cores_fases[2], fill: false, tension: 0.1, order: 0 },
                     { type: 'line', label: 'S3 Mascarada (sem GD)', data: df_carga.map(r => r['S3 (kVA)']), borderColor: cores_fases[2], borderDash: [5, 5], fill: false, tension: 0.1, order: 0 },
-                    { type: 'bar', label: 'Geração GD Horária (kW)', data: geracao_gd_hora, backgroundColor: cores_geracao[0] + '99', borderColor: cores_geracao[0], order: 1}
+                    { type: 'bar', label: 'Geração GD Horária (kW)', data: geracao_gd_hora_kw, backgroundColor: cores_geracao[0] + '99', borderColor: cores_geracao[0], order: 1}
                 ]
             }, 'Comparação por Fase e Geração GD Horária', "Hora do Dia", "Potência (kVA / kW)");
 
@@ -1005,28 +934,28 @@
             renderChart('diferencasFaseChart', 'line', { 
                 labels: horasDia,
                 datasets: [
-                    { label: `Geração Injetada S1 (kVA)`, data: gd_fase1_data, borderColor: cores_fases[0], backgroundColor: cores_fases[0] + '33', fill: 'origin', tension: 0.1 },
-                    { label: `Geração Injetada S2 (kVA)`, data: gd_fase2_data, borderColor: cores_fases[1], backgroundColor: cores_fases[1] + '33', fill: 'origin', tension: 0.1 },
-                    { label: `Geração Injetada S3 (kVA)`, data: gd_fase3_data, borderColor: cores_fases[2], backgroundColor: cores_fases[2] + '33', fill: 'origin', tension: 0.1 }
+                    { label: `Geração Injetada S1 (kVA)`, data: gd_fase1_data_kva, borderColor: cores_fases[0], backgroundColor: cores_fases[0] + '33', fill: 'origin', tension: 0.1 },
+                    { label: `Geração Injetada S2 (kVA)`, data: gd_fase2_data_kva, borderColor: cores_fases[1], backgroundColor: cores_fases[1] + '33', fill: 'origin', tension: 0.1 },
+                    { label: `Geração Injetada S3 (kVA)`, data: gd_fase3_data_kva, borderColor: cores_fases[2], backgroundColor: cores_fases[2] + '33', fill: 'origin', tension: 0.1 }
                 ]
             }, 'Geração Distribuída (GD) Injetada por Fase', "Hora do Dia", "Potência Injetada (kVA)", { scales: { y: { beginAtZero: true } } });
-
+            
             const fases = ['S1', 'S2', 'S3'];
-            const gd_data_por_fase = [gd_fase1_data, gd_fase2_data, gd_fase3_data];
+            const gd_data_por_fase_kva = [gd_fase1_data_kva, gd_fase2_data_kva, gd_fase3_data_kva];
 
             fases.forEach((fase, i) => {
                 const real = df_carga.map(r => r[`S${i+1}_real (kVA)`]);
                 const mascarada = df_carga.map(r => r[`S${i+1} (kVA)`]);
-                const diferenca = gd_data_por_fase[i]; 
-                const area_gd_gerada = round(trapezoidRule(diferenca.map(d => d >= 0 ? d : 0)), 1);
-                const title = `Análise Detalhada - Fase ${i+1} (Energia Injetada: ${area_gd_gerada} kVA·h)`;
+                const diferenca_kva = gd_data_por_fase_kva[i]; 
+                const area_gd_gerada_kvah = round(trapezoidRule(diferenca_kva.map(d => d >= 0 ? d : 0)), 1);
+                const title = `Análise Detalhada - Fase ${i+1} (Energia Injetada: ${area_gd_gerada_kvah} kVA·h)`;
 
                 renderChart(`analiseDetalhadaFase${i+1}Chart`, 'bar', {
                     labels: horasDia,
                     datasets: [
                         { type: 'line', label: `Carga Real (com GD)`, data: real, borderColor: cores_fases[i], tension: 0.1, fill: false, order: 0 },
                         { type: 'line', label: 'Carga Mascarada (sem GD)', data: mascarada, borderColor: cores_fases[i], borderDash: [5, 5], tension: 0.1, fill: false, order: 1 },
-                        { type: 'bar', label: 'Geração Injetada', data: diferenca, backgroundColor: cores_fases[i] + '66', order: 2 }
+                        { type: 'bar', label: 'Geração Injetada', data: diferenca_kva, backgroundColor: cores_fases[i] + '66', order: 2 }
                     ]
                 }, title, "Hora do Dia", "Potência (kVA)", {
                     scales: { y: { beginAtZero: false } },
@@ -1080,22 +1009,36 @@
         if (!canvasElement) return;
         const ctx = canvasElement.getContext('2d');
         if (chartInstances[canvasId]) chartInstances[canvasId].destroy();
+        
+        const defaultOptions = {
+            responsive: true,
+            maintainAspectRatio: false, 
+            plugins: {
+                title: { display: true, text: titleText, font: { size: 14 } }, 
+                legend: { position: 'top', labels: { boxWidth: 20, font: {size: 10} } }, 
+            },
+            scales: {
+                x: { title: { display: true, text: xlabel }, ticks: { maxTicksLimit: 13, font: {size:10} } },
+                y: { title: { display: true, text: ylabel }, ticks: { font: {size:10} }, beginAtZero: true }
+            }
+        };
+
+        const finalOptions = { ...defaultOptions, ...customOptions };
+        finalOptions.plugins = { ...defaultOptions.plugins, ...customOptions.plugins };
+        finalOptions.scales = { ...defaultOptions.scales, ...customOptions.scales };
+
+        // Forçar y.beginAtZero a ser verdadeiro para 'diferencasFaseChart' como no modelo
+        if (canvasId === 'diferencasFaseChart') {
+            finalOptions.scales.y.beginAtZero = true;
+        } else if (type === 'line' && data.datasets.some(ds => ds.data.some(d => d < 0))) {
+            finalOptions.scales.y.beginAtZero = false;
+        }
+
+
         chartInstances[canvasId] = new Chart(ctx, {
             type: type,
             data: data,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false, 
-                plugins: {
-                    title: { display: true, text: titleText, font: { size: 14 } }, 
-                    legend: { position: 'top', labels: { boxWidth: 20, font: {size: 10} } }, 
-                },
-                scales: {
-                    x: { title: { display: true, text: xlabel }, ticks: { maxTicksLimit: 13, font: {size:10} } },
-                    y: { title: { display: true, text: ylabel }, ticks: { font: {size:10} }, beginAtZero: type !== 'line' || !data.datasets.some(ds => ds.data.some(d => d < 0)) }
-                },
-                ...customOptions
-            }
+            options: finalOptions
         });
     }
 
